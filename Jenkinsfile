@@ -1,20 +1,33 @@
 pipeline {
     agent any
+    environment {
+        DOCKER_HUB_REPO="ankush1296/gitops_project"
+        DOCKER_HUB_CREDENTIALS_ID = "gitops-docker-token"
+    }
+    
     stages {
         stage('Checkout Github') {
             steps {
                 echo 'Checking out code from GitHub...'
-		checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_token', url: 'https://github.com/ANKUSHSINGH-PAT/SMART-MANUFACTURING-MACHINES_Gitops_Project.git']])
+		        checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_token', url: 'https://github.com/ANKUSHSINGH-PAT/SMART-MANUFACTURING-MACHINES_Gitops_Project.git']])
 		    }
         }        
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
+                script {
+                    echo 'Building Docker image...'
+                    dockerImage = docker.build("${DOCKER_HUB_REPO}:latest")
+                }
             }
         }
         stage('Push Image to DockerHub') {
             steps {
-                echo 'Pushing Docker image to DockerHub...'
+               script {
+                   echo 'Pushing Docker image to DockerHub...'
+                   docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
+                       dockerImage.push('latest')
+                   }
+               }
             }
         }
         stage('Install Kubectl & ArgoCD CLI') {
